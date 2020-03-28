@@ -9,6 +9,9 @@
     <style>
         * {font-family: arial}
         td {border: 1px solid #ccc;}
+        @media only screen and (max-width: 600px) {
+            .hide-mobile {display: none;}
+        }
     </style>
 </head>
 <body>
@@ -24,7 +27,7 @@
                 <td>Verstorben</td>
                 <td>Letzte Aktualisierung</td>
                 <td>Quelle</td>
-                <td>Hinweis Datenquelle</td>
+                <td class="hide-mobile">Hinweis Datenquelle</td>
             </tr>
         </thead>
         <tbody id='table'></tbody>
@@ -328,7 +331,7 @@
                         if (data.lastUpdated) {
                             let dt = new Date()
                             dt.setTime(data.lastUpdated)
-                            lastUpdated = dt.toUTCString()
+                            lastUpdated = dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString()
                         }
 
 
@@ -343,6 +346,7 @@
                         td5.innerHTML = `<a href="${data.srcUrl}" target="_blank">${data.srcName}</a>`
                         tr.appendChild(td5)
                         td6.innerHTML = data.srcNote
+                        td6.className = 'hide-mobile'
                         tr.appendChild(td6)
 
                         this.table.appendChild(tr)
@@ -361,7 +365,7 @@
         window.dataLayer = window.dataLayer || []
         function gtag(){dataLayer.push(arguments)}
         gtag('js', new Date())
-        gtag('config', 'UA-57728344-3')
+        gtag('config', 'UA-57728344-1')
     </script>
 </body>
 </html>
