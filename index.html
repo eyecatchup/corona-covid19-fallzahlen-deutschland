@@ -1,0 +1,412 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no'>
+    <title>Corona (COVID-19) Fallzahlen Deutschland</title>
+    <link rel='dns-prefetch' href='https://www.googletagmanager.com'>
+    <link rel='prefetch' href='https://www.googletagmanager.com/gtag/js'>
+    <style>
+        * {font-family: arial}
+        td {border: 1px solid #ccc;}
+    </style>
+</head>
+<body>
+    <h1>Fallzahlen zu COVID-19 in Deutschland</h1>
+    <h2>Live abgefragt von verschiedenen, oft zitierten Datenquellen</h2>
+    <small><em>Hinweis: Funktioniert nur in modernen Browsern! Sortierung: Infiziert (Total), absteigend</em></small>
+    <hr>
+    <table>
+        <thead>
+            <tr>
+                <td>Infiziert (Total)</td>
+                <td>Genesen</td>
+                <td>Verstorben</td>
+                <td>Letzte Aktualisierung</td>
+                <td>Quelle</td>
+                <td>Datenquelle Hinweis</td>
+            </tr>
+        </thead>
+        <tbody id='table'></tbody>
+    </table>
+    <script>
+        ((window) => {
+            "use strict"
+
+            /**
+             * XHR wrapper
+             */
+            const Request = {
+                xhr: null,
+                getXMLHttpRequest: function() {
+                    if (!!window.XMLHttpRequest) {
+                        this.xhr = new window.XMLHttpRequest
+                    } else {
+                        try {
+                            this.xhr = new ActiveXObject('MSXML2.XMLHTTP.3.0')
+                        } catch (e) {
+                            this.xhr = null
+                        }
+                    }
+                },
+                get: function(requestUrl, opts, success, failure) {
+                    this.getXMLHttpRequest()
+
+                    if (!this.xhr) {
+                        window.console.log('AJAX (XMLHTTP) not supported by your client.')
+                        failure({
+                            status: 'error',
+                            msg: 'AJAX (XMLHTTP) not supported by your client but required to work, sorry.'
+                        })
+                        return
+                    }
+
+                    const self = this.xhr
+
+                    this.xhr.open('GET', requestUrl, true)
+
+                    if (opts && opts.header && opts.header.length) {
+                        for (let i = 0; i < opts.header.length; i++) {
+                            //this.xhr.setRequestHeader('Accept', 'application/json')
+                            this.xhr.setRequestHeader(
+                                opts.header[i].name,
+                                opts.header[i].value
+                            )
+                        }
+                    }
+
+                    if (opts && opts.json) {
+                        this.xhr.setRequestHeader('Accept', 'application/json')
+                    }
+
+                    this.xhr.timeout = 2500 // time in milliseconds
+
+                    self.onload = () => {
+                        if (self.status >= 200 && self.status < 300) {
+                            window.console.log(`Successfully called ${requestUrl}.`)
+
+                            let json = null
+                            if (opts && opts.json) {
+                                try {
+                                    json = JSON.parse(self.responseText)
+                                } catch (e) {
+                                    window.console.log('Error parsing response as JSON. Returning raw response data.')
+                                }
+                            }
+
+                            success((!json ? self.responseText : json))
+                        }
+                        else {
+                            let msg = `Error requesting ${requestUrl}. Response Status-Code is ${self.status}.`
+                            window.console.log(msg)
+                            failure({
+                                status: 'error',
+                                msg: msg
+                            });
+                        }
+                    }
+                    self.onerror = () => {
+                        let msg = `There was an error (of some sort) connecting to ${requestUrl}.`
+                        window.console.log(msg)
+                        failure({
+                            status: 'error',
+                            msg: msg
+                        })
+                    }
+                    self.ontimeout = () => {
+                        let msg = `Connection to ${requestUrl} timed out.`
+                        window.console.log(msg)
+                        failure({
+                            status: 'error',
+                            msg: msg
+                        })
+                    }
+
+                    this.xhr.send()
+                }
+            }
+
+            window.Request = Request
+        })(window);
+
+        ((window) => {
+            "use strict"
+
+            const dataSources = {
+                zeit: {
+                    name: 'ZEIT ONLINE',
+                    url: 'https://www.zeit.de/wissen/gesundheit/2020-03/coronavirus-deutschland-infektionen-faelle-verbreitung-epidemie-karte',
+                    dataUrl: 'https://interactive.zeit.de/cronjobs/2020/corona/germany.json?time=' + Date.now(),
+                    dataNotice: 'Die Daten stammen von den zuständigen Behörden der Landkreise und Bundesländer, die ZEIT ONLINE mehrmals am Tag abruft und hier aktualisiert.<br><br>Da es wegen der Meldekette zu Verzögerungen kommt, fragen wir seit dem 21. März regelmäßig die bestätigten Fälle der 401 Stadt- und Landkreise direkt ab. Diese spiegeln den aktuellsten Stand in Deutschland am besten wider. Diese Zahlen können daher von anderen Quellen wie dem Robert Koch-Institut (RKI) oder der Johns Hopkins Universität abweichen.<br><br>Bisher gibt es kein einheitliches Meldeverfahren, was die Anzahl der Genesenen betrifft. Manche Landesbehörden weisen sie derzeit nicht aus. Daher liegen die hier gezeigten Werte wohl unter der tatsächlichen Zahl der Menschen, die eine Infektion bereits überstanden haben.'
+                },
+                mopo: {
+                    name: 'Berliner Morgenpost',
+                    url: 'https://interaktiv.morgenpost.de/corona-virus-karte-infektionen-deutschland-weltweit/',
+                    dataUrl: 'https://interaktiv.morgenpost.de/corona-virus-karte-infektionen-deutschland-weltweit/data/Coronavirus.timeline.v2.csv?' + Date.now(),
+                    dataNotice: 'Datenquellen: Robert-Koch-Institut sowie Kreis- und Landesgesundheitsämter<br><br>Hinweis: Die Datenlage ist weltweit hochdynamisch. So kann es bei den Fallzahlen zu Abweichungen anderer Darstellungen kommen. Die offiziellen Zahlen fallen insbesondere zwischen dem Robert-Koch-Institut und den Meldungen der Bundesländer unterschiedlich aus. Das liegt an zeitlich abweichenden Ständen und den Meldeketten. Diese Angaben werden von der Redaktion mehrmals täglich abgeglichen. Zudem kommt es bei der Zahl der "wieder gesunden" Menschen zu Verzögerungen.'
+                },
+                bno: {
+                    name: 'BNO News',
+                    url: 'https://bnonews.com/index.php/2020/03/the-latest-coronavirus-cases/',
+                    dataUrl: 'https://docs.google.com/spreadsheets/u/0/d/e/2PACX-1vR30F8lYP3jG7YOq8es0PBpJIE5yvRVZffOyaqC0GgMBN6yt0Q-NI8pxS7hd1F9dYXnowSC6zpZmW9D/pubhtml/sheet?headers=false&gid=0&range=A1:I202',
+                    dataNotice: 'Datenquelle für Deutschland: https://dts-nachrichtenagentur.de/corona-fallzahlen'
+                },
+                jhu: {
+                    name: 'John Hopkins University',
+                    url: 'https://coronavirus.jhu.edu/map.html',
+                    dataUrl: 'https://services9.arcgis.com/N9p5hsImWXAccRNI/arcgis/rest/services/Nc2JKvYFoAEOFCG5JSI6/FeatureServer/2/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&orderByFields=Confirmed%20desc&resultOffset=0&resultRecordCount=190&cacheHint=true',
+                    dataNotice: 'Datenquellen: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO News, Nationale Gesundheitsbehörden und lokale Medien. Weitere Infos unter: https://systems.jhu.edu/research/public-health/ncov/'
+                }
+            }
+
+            const Covid19StatsDE = {
+                results: [],
+                table: null,
+                init: async function() {
+                    this.table = document.querySelector('#table')
+
+                    // Hole Daten von John Hopkins University
+                    let jhu = await this.getJHU()
+                    console.dir(jhu)
+                    if (jhu.status === 'success') {
+                        if (jhu.data.features && jhu.data.features.length) {
+                            for (let i = 0; i < jhu.data.features.length; i++) {
+                                if (jhu.data.features[i].attributes.Country_Region === 'Germany') {
+                                    this.addResult(
+                                        jhu.data.features[i].attributes.Confirmed,
+                                        jhu.data.features[i].attributes.Recovered,
+                                        jhu.data.features[i].attributes.Deaths,
+                                        jhu.data.features[i].attributes.Last_Update,
+                                        jhu.src.name,
+                                        jhu.src.url,
+                                        jhu.src.dataNotice
+                                    )
+                                    break
+                                }
+                            }
+                        }
+                    }
+
+                    // Hole Daten von Zeit Online
+                    let zeit = await this.getZeit()
+                    console.dir(zeit)
+                    if (zeit.status === 'success') {
+                        this.addResult(
+                            zeit.data.currentStats.count,
+                            zeit.data.currentStats.recovered,
+                            zeit.data.currentStats.dead,
+                            new Date(zeit.data.lastUpdate).getTime(),
+                            zeit.src.name,
+                            zeit.src.url,
+                            zeit.src.dataNotice
+                        )
+                    }
+
+                    // Hole Daten von Berliner Morgenpost
+                    let mopo = await this.getMopo()
+                    console.dir(mopo)
+                    if (mopo.status === 'success') {
+                        let csv = mopo.data
+                        let lines = csv.split('\n')
+                        let lastLine = lines[lines.length - 2] // letzte zeile ist leer
+                        let values = lastLine.split(',')
+                        if (values && values.length && values.length === 5 && values[0] === 'germany') {
+                            this.addResult(
+                                values[2],
+                                values[3],
+                                values[4],
+                                new Date(values[1]).getTime(),
+                                mopo.src.name,
+                                mopo.src.url,
+                                mopo.src.dataNotice
+                            )
+                        }
+                    }
+
+                    // Hole Daten von BNO News
+                    let bno = await this.getBNO()
+                    console.dir(bno)
+                    if (bno.status === 'success') {
+                        let html = bno.data
+                        let regex = /Germany<\/td><td class="s16" dir="ltr">(.*?)<\/td><td class="s17" dir="ltr">(.*?)<\/td><td class="s16" dir="ltr">(.*?)<\/td><td class="s18" dir="ltr">(.*?)<\/td><td class="s19" dir="ltr">(.*?)<\/td><td class="s19" dir="ltr">(.*?)<\/td><td class="s19" dir="ltr">(.*?)<\/td>/gm
+
+                        let matches = regex.exec(html)
+                        if (matches.length && matches.length > 1) {
+                            this.addResult(
+                                matches[1].replace(',', ''),
+                                matches[7].replace(',', ''),
+                                matches[3].replace(',', ''),
+                                Date.now(),
+                                bno.src.name,
+                                bno.src.url,
+                                bno.src.dataNotice
+                            )
+                        }
+                    }
+
+                    this.results.sort(function(a, b) {
+                        if (a.infected > b.infected) return -1
+                        if (a.infected < b.infected) return 1
+                        return 0
+                    })
+
+                    for (let i in this.results) {
+                        this.addResultHTML(this.results[i])
+                    }
+
+                    console.dir(this.results)
+                },
+                getZeit: function() {
+                    return new Promise((resolve) => {
+                        let source = dataSources.zeit
+                        Request.get(source.dataUrl,
+                            {
+                                json: true
+                            },
+                            (data) => {
+                                resolve({
+                                    status: 'success',
+                                    data: data,
+                                    src: source
+                                })
+                            },
+                            (error) => {
+                                window.console.warn(error)
+                                resolve({
+                                    status: 'error',
+                                    error: error
+                                })
+                            }
+                        )
+                    })
+                },
+                getMopo: function() {
+                    return new Promise((resolve) => {
+                        let source = dataSources.mopo
+                        Request.get(source.dataUrl,
+                            {},
+                            (data) => {
+                                resolve({
+                                    status: 'success',
+                                    data: data,
+                                    src: source
+                                })
+                            },
+                            (error) => {
+                                window.console.warn(error)
+                                resolve({
+                                    status: 'error',
+                                    error: error
+                                })
+                            }
+                        )
+                    })
+                },
+                getBNO: function() {
+                    return new Promise((resolve) => {
+                        let source = dataSources.bno
+                        Request.get(source.dataUrl,
+                            {},
+                            (data) => {
+                                resolve({
+                                    status: 'success',
+                                    data: data,
+                                    src: source
+                                })
+                            },
+                            (error) => {
+                                window.console.warn(error)
+                                resolve({
+                                    status: 'error',
+                                    error: error
+                                })
+                            }
+                        )
+                    })
+                },
+                getJHU: function() {
+                    return new Promise((resolve) => {
+                        let source = dataSources.jhu
+                        Request.get(source.dataUrl,
+                            {
+                                json: true
+                            },
+                            (data) => {
+                                resolve({
+                                    status: 'success',
+                                    data: data,
+                                    src: source
+                                })
+                            },
+                            (error) => {
+                                window.console.warn(error)
+                                resolve({
+                                    status: 'error',
+                                    error: error
+                                })
+                            }
+                        )
+                    })
+                },
+                addResult: function(infected, recovered, dead, updated, name, url, note) {
+                    this.results.push({
+                        infected: parseInt(infected),
+                        recovered: parseInt(recovered),
+                        dead: parseInt(dead),
+                        lastUpdated: updated,
+                        srcName: name,
+                        srcUrl: url,
+                        srcNote: note || ''
+                    })
+                },
+                addResultHTML: function(data) {
+                    if (this.table) {
+                        let tr = document.createElement('tr'),
+                            td1 = document.createElement('td'),
+                            td2 = document.createElement('td'),
+                            td3 = document.createElement('td'),
+                            td4 = document.createElement('td'),
+                            td5 = document.createElement('td'),
+                            td6 = document.createElement('td')
+
+                        let lastUpdated = 'keine Angabe'
+                        if (data.lastUpdated) {
+                            let dt = new Date()
+                            dt.setTime(data.lastUpdated)
+                            lastUpdated = dt.toUTCString()
+                        }
+
+
+                        td1.innerText = data.infected
+                        tr.appendChild(td1)
+                        td2.innerText = data.recovered
+                        tr.appendChild(td2)
+                        td3.innerText = data.dead
+                        tr.appendChild(td3)
+                        td4.innerText = lastUpdated
+                        tr.appendChild(td4)
+                        td5.innerHTML = `<a href="${data.srcUrl}" target="_blank">${data.srcName}</a>`
+                        tr.appendChild(td5)
+                        td6.innerHTML = data.srcNote
+                        tr.appendChild(td6)
+
+                        this.table.appendChild(tr)
+                    }
+                }
+            }
+
+            window.Covid19StatsDE = Covid19StatsDE
+        })(window);
+
+        (() => {
+            Covid19StatsDE.init()
+        })()
+    </script>
+    <script>
+        window.dataLayer = window.dataLayer || []
+        function gtag(){dataLayer.push(arguments)}
+        gtag('js', new Date())
+        gtag('config', 'UA-57728344-3')
+    </script>
+</body>
+</html>
