@@ -152,7 +152,7 @@
                     dataNotice: 'Datenquelle für Deutschland: https://dts-nachrichtenagentur.de/corona-fallzahlen'
                 },
                 jhu: {
-                    name: 'John Hopkins University',
+                    name: 'Johns Hopkins University',
                     url: 'https://coronavirus.jhu.edu/map.html',
                     dataUrl: 'https://services9.arcgis.com/N9p5hsImWXAccRNI/arcgis/rest/services/Nc2JKvYFoAEOFCG5JSI6/FeatureServer/2/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&orderByFields=Confirmed%20desc&resultOffset=0&resultRecordCount=190&cacheHint=true',
                     dataNotice: 'Datenquellen: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO News, Nationale Gesundheitsbehörden und lokale Medien. Weitere Infos unter: https://systems.jhu.edu/research/public-health/ncov/'
@@ -161,12 +161,10 @@
 
             const Covid19StatsDE = {
                 results: [],
-                table: null,
+                table: document.querySelector('#table'),
                 init: async function() {
-                    this.table = document.querySelector('#table')
-
-                    // Hole Daten von John Hopkins University
-                    let jhu = await this.getJHU()
+                    // Hole Daten von Johns Hopkins University
+                    let jhu = await this.get(dataSources.jhu, {json: true})
                     console.dir(jhu)
                     if (jhu.status === 'success') {
                         if (jhu.data.features && jhu.data.features.length) {
@@ -188,7 +186,7 @@
                     }
 
                     // Hole Daten von Zeit Online
-                    let zeit = await this.getZeit()
+                    let zeit = await this.get(dataSources.zeit, {json: true})
                     console.dir(zeit)
                     if (zeit.status === 'success') {
                         this.addResult(
@@ -203,7 +201,7 @@
                     }
 
                     // Hole Daten von Berliner Morgenpost
-                    let mopo = await this.getMopo()
+                    let mopo = await this.get(dataSources.mopo)
                     console.dir(mopo)
                     if (mopo.status === 'success') {
                         let csv = mopo.data
@@ -224,7 +222,7 @@
                     }
 
                     // Hole Daten von BNO News
-                    let bno = await this.getBNO()
+                    let bno = await this.get(dataSources.bno)
                     console.dir(bno)
                     if (bno.status === 'success') {
                         let html = bno.data
@@ -256,81 +254,10 @@
 
                     console.dir(this.results)
                 },
-                getZeit: function() {
+                get: function(source, opts) {
                     return new Promise((resolve) => {
-                        let source = dataSources.zeit
                         Request.get(source.dataUrl,
-                            {
-                                json: true
-                            },
-                            (data) => {
-                                resolve({
-                                    status: 'success',
-                                    data: data,
-                                    src: source
-                                })
-                            },
-                            (error) => {
-                                window.console.warn(error)
-                                resolve({
-                                    status: 'error',
-                                    error: error
-                                })
-                            }
-                        )
-                    })
-                },
-                getMopo: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.mopo
-                        Request.get(source.dataUrl,
-                            {},
-                            (data) => {
-                                resolve({
-                                    status: 'success',
-                                    data: data,
-                                    src: source
-                                })
-                            },
-                            (error) => {
-                                window.console.warn(error)
-                                resolve({
-                                    status: 'error',
-                                    error: error
-                                })
-                            }
-                        )
-                    })
-                },
-                getBNO: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.bno
-                        Request.get(source.dataUrl,
-                            {},
-                            (data) => {
-                                resolve({
-                                    status: 'success',
-                                    data: data,
-                                    src: source
-                                })
-                            },
-                            (error) => {
-                                window.console.warn(error)
-                                resolve({
-                                    status: 'error',
-                                    error: error
-                                })
-                            }
-                        )
-                    })
-                },
-                getJHU: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.jhu
-                        Request.get(source.dataUrl,
-                            {
-                                json: true
-                            },
+                            opts || {},
                             (data) => {
                                 resolve({
                                     status: 'success',
