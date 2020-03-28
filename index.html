@@ -24,7 +24,7 @@
                 <td>Verstorben</td>
                 <td>Letzte Aktualisierung</td>
                 <td>Quelle</td>
-                <td>Datenquelle Hinweis</td>
+                <td>Hinweis Datenquelle</td>
             </tr>
         </thead>
         <tbody id='table'></tbody>
@@ -156,6 +156,16 @@
                     url: 'https://coronavirus.jhu.edu/map.html',
                     dataUrl: 'https://services9.arcgis.com/N9p5hsImWXAccRNI/arcgis/rest/services/Nc2JKvYFoAEOFCG5JSI6/FeatureServer/2/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&orderByFields=Confirmed%20desc&resultOffset=0&resultRecordCount=190&cacheHint=true',
                     dataNotice: 'Datenquellen: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO News, Nationale Gesundheitsbehörden und lokale Medien. Weitere Infos unter: https://systems.jhu.edu/research/public-health/ncov/'
+                },
+                rki: {
+                    name: 'Robert-Koch-Institut (RKI)',
+                    url: 'https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Fallzahlen.html',
+                    //url: 'https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4/page/page_0/',
+                    dataUrls: {
+                        confirmed: 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_Landkreisdaten/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22cases%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true',
+                        dead: 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_Landkreisdaten/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22deaths%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true'
+                    },
+                    dataNotice: 'Es werden die bundesweit einheitlich erfassten und an das Robert Koch-Institut (RKI) übermittelten Daten zu bestätigten COVID-19-Fällen dargestellt. COVID-19-Verdachtsfälle und - Erkrankungen sowie Nachweise von SARS-CoV-2 werden gemäß Infektionsschutzgesetz an das zuständige Gesundheitsamt gemeldet. Die Gesundheitsämter ermitteln ggf. zusätzliche Informationen, bewerten den Fall und leiten die notwendigen Infektionsschutzmaßnahmen ein.<br><br>Die Daten werden gemäß Infektionsschutzgesetz spätestens am nächsten Arbeitstag vom Gesundheitsamt elektronisch an die zuständige Landesbehörde und von dort an das RKI übermittelt. In der aktuellen Lage übermitteln die meisten Ämter sogar täglich. Am RKI werden sie mittels weitgehend automatisierter Algorithmen validiert.<br><br>Es werden nur Fälle veröffentlicht, bei denen eine labordiagnostische Bestätigung (unabhängig vom klinischen Bild) vorliegt. Die Daten werden am RKI einmal täglich jeweils um 0:00 Uhr aktualisiert. Durch die Dateneingabe und Datenübermittlung entsteht von dem Zeitpunkt des Bekanntwerdens des Falls bis zur Veröffentlichung durch das RKI ein Zeitverzug, sodass es Abweichungen hinsichtlich der Fallzahlen zu anderen Quellen geben kann.'
                 }
             }
 
@@ -164,7 +174,7 @@
                 table: document.querySelector('#table'),
                 init: async function() {
                     // Hole Daten von Johns Hopkins University
-                    let jhu = await this.get(dataSources.jhu, {json: true})
+                    let jhu = await this.get(dataSources.jhu.dataUrl, {json: true})
                     console.dir(jhu)
                     if (jhu.status === 'success') {
                         if (jhu.data.features && jhu.data.features.length) {
@@ -175,9 +185,9 @@
                                         jhu.data.features[i].attributes.Recovered,
                                         jhu.data.features[i].attributes.Deaths,
                                         jhu.data.features[i].attributes.Last_Update,
-                                        jhu.src.name,
-                                        jhu.src.url,
-                                        jhu.src.dataNotice
+                                        dataSources.jhu.name,
+                                        dataSources.jhu.url,
+                                        dataSources.jhu.dataNotice
                                     )
                                     break
                                 }
@@ -185,8 +195,27 @@
                         }
                     }
 
+                    // Hole Daten vom RKI
+                    let rkiConfirmed = await this.get(dataSources.rki.dataUrls.confirmed, {json: true})
+                    let rkiDead = await this.get(dataSources.rki.dataUrls.dead, {json: true})
+                    console.dir(rkiConfirmed)
+                    console.dir(rkiDead)
+                    if (rkiConfirmed.status === 'success' &&
+                        rkiDead.status === 'success'
+                    ) {
+                        this.addResult(
+                            rkiConfirmed.data.features[0].attributes.value,
+                            false,
+                            rkiDead.data.features[0].attributes.value,
+                            false,
+                            dataSources.rki.name,
+                            dataSources.rki.url,
+                            dataSources.rki.dataNotice
+                        )
+                    }
+
                     // Hole Daten von Zeit Online
-                    let zeit = await this.get(dataSources.zeit, {json: true})
+                    let zeit = await this.get(dataSources.zeit.dataUrl, {json: true})
                     console.dir(zeit)
                     if (zeit.status === 'success') {
                         this.addResult(
@@ -194,14 +223,14 @@
                             zeit.data.currentStats.recovered,
                             zeit.data.currentStats.dead,
                             new Date(zeit.data.lastUpdate).getTime(),
-                            zeit.src.name,
-                            zeit.src.url,
-                            zeit.src.dataNotice
+                            dataSources.zeit.name,
+                            dataSources.zeit.url,
+                            dataSources.zeit.dataNotice
                         )
                     }
 
                     // Hole Daten von Berliner Morgenpost
-                    let mopo = await this.get(dataSources.mopo)
+                    let mopo = await this.get(dataSources.mopo.dataUrl)
                     console.dir(mopo)
                     if (mopo.status === 'success') {
                         let csv = mopo.data
@@ -214,15 +243,15 @@
                                 values[3],
                                 values[4],
                                 new Date(values[1]).getTime(),
-                                mopo.src.name,
-                                mopo.src.url,
-                                mopo.src.dataNotice
+                                dataSources.mopo.name,
+                                dataSources.mopo.url,
+                                dataSources.mopo.dataNotice
                             )
                         }
                     }
 
                     // Hole Daten von BNO News
-                    let bno = await this.get(dataSources.bno)
+                    let bno = await this.get(dataSources.bno.dataUrl)
                     console.dir(bno)
                     if (bno.status === 'success') {
                         let html = bno.data
@@ -234,10 +263,10 @@
                                 matches[1].replace(',', ''),
                                 matches[7].replace(',', ''),
                                 matches[3].replace(',', ''),
-                                Date.now(),
-                                bno.src.name,
-                                bno.src.url,
-                                bno.src.dataNotice
+                                false,
+                                dataSources.bno.name,
+                                dataSources.bno.url,
+                                dataSources.bno.dataNotice
                             )
                         }
                     }
@@ -254,15 +283,14 @@
 
                     console.dir(this.results)
                 },
-                get: function(source, opts) {
+                get: function(url, opts) {
                     return new Promise((resolve) => {
-                        Request.get(source.dataUrl,
+                        Request.get(url,
                             opts || {},
                             (data) => {
                                 resolve({
                                     status: 'success',
-                                    data: data,
-                                    src: source
+                                    data: data
                                 })
                             },
                             (error) => {
@@ -278,7 +306,7 @@
                 addResult: function(infected, recovered, dead, updated, name, url, note) {
                     this.results.push({
                         infected: parseInt(infected),
-                        recovered: parseInt(recovered),
+                        recovered: !recovered ? 'keine Angabe' : parseInt(recovered),
                         dead: parseInt(dead),
                         lastUpdated: updated,
                         srcName: name,
