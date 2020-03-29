@@ -192,10 +192,19 @@
                 get: function(url, opts) {
                     return new Promise(async (resolve) => {
                         try {
+                            // because fetch has no timeout option,
+                            // we need to use the AbortController to
+                            // abort requests, that timed out
+                            const ctrl = new AbortController
+                            const signal = ctrl.signal
+                            const timeout = setTimeout(() => ctrl.abort(), 3000)
+
                             let response = await fetch(url, {
                                 credentials: 'omit',
-                                mode: 'cors'
+                                mode: 'cors',
+                                signal: signal
                             })
+                            clearTimeout(timeout)
                             if (response.ok && response.status === 200) {
                                 let data = (opts && opts.json) ? await response.json() : await response.text()
                                 resolve({
