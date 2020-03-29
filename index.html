@@ -9,6 +9,9 @@
     <style>
         * {font-family: arial}
         td {border: 1px solid #ccc;}
+        @media only screen and (max-width: 600px) {
+            .hide-mobile {display: none;}
+        }
     </style>
 </head>
 <body>
@@ -24,111 +27,13 @@
                 <td>Verstorben</td>
                 <td>Letzte Aktualisierung</td>
                 <td>Quelle</td>
-                <td>Datenquelle Hinweis</td>
+                <td class="hide-mobile">Hinweis Datenquelle</td>
             </tr>
         </thead>
         <tbody id='table'></tbody>
     </table>
+    <p id='loading'><strong>Lade Daten...</strong></p>
     <script>
-        ((window) => {
-            "use strict"
-
-            /**
-             * XHR wrapper
-             */
-            const Request = {
-                xhr: null,
-                getXMLHttpRequest: function() {
-                    if (!!window.XMLHttpRequest) {
-                        this.xhr = new window.XMLHttpRequest
-                    } else {
-                        try {
-                            this.xhr = new ActiveXObject('MSXML2.XMLHTTP.3.0')
-                        } catch (e) {
-                            this.xhr = null
-                        }
-                    }
-                },
-                get: function(requestUrl, opts, success, failure) {
-                    this.getXMLHttpRequest()
-
-                    if (!this.xhr) {
-                        window.console.log('AJAX (XMLHTTP) not supported by your client.')
-                        failure({
-                            status: 'error',
-                            msg: 'AJAX (XMLHTTP) not supported by your client but required to work, sorry.'
-                        })
-                        return
-                    }
-
-                    const self = this.xhr
-
-                    this.xhr.open('GET', requestUrl, true)
-
-                    if (opts && opts.header && opts.header.length) {
-                        for (let i = 0; i < opts.header.length; i++) {
-                            //this.xhr.setRequestHeader('Accept', 'application/json')
-                            this.xhr.setRequestHeader(
-                                opts.header[i].name,
-                                opts.header[i].value
-                            )
-                        }
-                    }
-
-                    if (opts && opts.json) {
-                        this.xhr.setRequestHeader('Accept', 'application/json')
-                    }
-
-                    this.xhr.timeout = 2500 // time in milliseconds
-
-                    self.onload = () => {
-                        if (self.status >= 200 && self.status < 300) {
-                            window.console.log(`Successfully called ${requestUrl}.`)
-
-                            let json = null
-                            if (opts && opts.json) {
-                                try {
-                                    json = JSON.parse(self.responseText)
-                                } catch (e) {
-                                    window.console.log('Error parsing response as JSON. Returning raw response data.')
-                                }
-                            }
-
-                            success((!json ? self.responseText : json))
-                        }
-                        else {
-                            let msg = `Error requesting ${requestUrl}. Response Status-Code is ${self.status}.`
-                            window.console.log(msg)
-                            failure({
-                                status: 'error',
-                                msg: msg
-                            });
-                        }
-                    }
-                    self.onerror = () => {
-                        let msg = `There was an error (of some sort) connecting to ${requestUrl}.`
-                        window.console.log(msg)
-                        failure({
-                            status: 'error',
-                            msg: msg
-                        })
-                    }
-                    self.ontimeout = () => {
-                        let msg = `Connection to ${requestUrl} timed out.`
-                        window.console.log(msg)
-                        failure({
-                            status: 'error',
-                            msg: msg
-                        })
-                    }
-
-                    this.xhr.send()
-                }
-            }
-
-            window.Request = Request
-        })(window);
-
         ((window) => {
             "use strict"
 
@@ -146,27 +51,35 @@
                     dataNotice: 'Datenquellen: Robert-Koch-Institut sowie Kreis- und Landesgesundheitsämter<br><br>Hinweis: Die Datenlage ist weltweit hochdynamisch. So kann es bei den Fallzahlen zu Abweichungen anderer Darstellungen kommen. Die offiziellen Zahlen fallen insbesondere zwischen dem Robert-Koch-Institut und den Meldungen der Bundesländer unterschiedlich aus. Das liegt an zeitlich abweichenden Ständen und den Meldeketten. Diese Angaben werden von der Redaktion mehrmals täglich abgeglichen. Zudem kommt es bei der Zahl der "wieder gesunden" Menschen zu Verzögerungen.'
                 },
                 bno: {
-                    name: 'BNO News',
+                    name: 'BNO News (via dts Nachrichtenagentur)',
                     url: 'https://bnonews.com/index.php/2020/03/the-latest-coronavirus-cases/',
                     dataUrl: 'https://docs.google.com/spreadsheets/u/0/d/e/2PACX-1vR30F8lYP3jG7YOq8es0PBpJIE5yvRVZffOyaqC0GgMBN6yt0Q-NI8pxS7hd1F9dYXnowSC6zpZmW9D/pubhtml/sheet?headers=false&gid=0&range=A1:I202',
-                    dataNotice: 'Datenquelle für Deutschland: https://dts-nachrichtenagentur.de/corona-fallzahlen'
+                    dataNotice: 'Datenquelle für Deutschland: https://dts-nachrichtenagentur.de/corona-fallzahlen<br><br>Hinweis:Direkte Abfrage beim Robert-Koch-Institut (RKI), aber auch bei Landesministerien, Städten und Landkreisen, bis 27.3. nur durch die dts-Redaktion. Seit 27.3. nutzen wir für die Angabe der bestätigten Infektionen sowie der Totenzahlen zusätzlich auch verlässliche Datenangaben Dritter wie den Redaktionen der Berliner Morgenpost, Zeit.de, Tagesspiegel.de, Saarbrücker Zeitung, Radio Bremen, Risklayer, CEDIM (KIT), coronavirus.jetzt, u.v.a., neben eigenen Berechnungen.'
                 },
                 jhu: {
-                    name: 'John Hopkins University',
+                    name: 'Johns Hopkins University',
                     url: 'https://coronavirus.jhu.edu/map.html',
                     dataUrl: 'https://services9.arcgis.com/N9p5hsImWXAccRNI/arcgis/rest/services/Nc2JKvYFoAEOFCG5JSI6/FeatureServer/2/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&orderByFields=Confirmed%20desc&resultOffset=0&resultRecordCount=190&cacheHint=true',
                     dataNotice: 'Datenquellen: WHO, CDC, ECDC, NHC, DXY, 1point3acres, Worldometers.info, BNO News, Nationale Gesundheitsbehörden und lokale Medien. Weitere Infos unter: https://systems.jhu.edu/research/public-health/ncov/'
+                },
+                rki: {
+                    name: 'Robert-Koch-Institut (RKI)',
+                    url: 'https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/Fallzahlen.html',
+                    //url: 'https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4/page/page_0/',
+                    dataUrls: {
+                        confirmed: 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_Landkreisdaten/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22cases%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true',
+                        dead: 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_Landkreisdaten/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22deaths%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true'
+                    },
+                    dataNotice: 'Es werden die bundesweit einheitlich erfassten und an das Robert Koch-Institut (RKI) übermittelten Daten zu bestätigten COVID-19-Fällen dargestellt. COVID-19-Verdachtsfälle und - Erkrankungen sowie Nachweise von SARS-CoV-2 werden gemäß Infektionsschutzgesetz an das zuständige Gesundheitsamt gemeldet. Die Gesundheitsämter ermitteln ggf. zusätzliche Informationen, bewerten den Fall und leiten die notwendigen Infektionsschutzmaßnahmen ein.<br><br>Die Daten werden gemäß Infektionsschutzgesetz spätestens am nächsten Arbeitstag vom Gesundheitsamt elektronisch an die zuständige Landesbehörde und von dort an das RKI übermittelt. In der aktuellen Lage übermitteln die meisten Ämter sogar täglich. Am RKI werden sie mittels weitgehend automatisierter Algorithmen validiert.<br><br>Es werden nur Fälle veröffentlicht, bei denen eine labordiagnostische Bestätigung (unabhängig vom klinischen Bild) vorliegt. Die Daten werden am RKI einmal täglich jeweils um 0:00 Uhr aktualisiert. Durch die Dateneingabe und Datenübermittlung entsteht von dem Zeitpunkt des Bekanntwerdens des Falls bis zur Veröffentlichung durch das RKI ein Zeitverzug, sodass es Abweichungen hinsichtlich der Fallzahlen zu anderen Quellen geben kann.'
                 }
             }
 
             const Covid19StatsDE = {
                 results: [],
-                table: null,
+                table: document.querySelector('#table'),
                 init: async function() {
-                    this.table = document.querySelector('#table')
-
-                    // Hole Daten von John Hopkins University
-                    let jhu = await this.getJHU()
+                    // Hole Daten von Johns Hopkins University
+                    let jhu = await this.get(dataSources.jhu.dataUrl, {json: true})
                     console.dir(jhu)
                     if (jhu.status === 'success') {
                         if (jhu.data.features && jhu.data.features.length) {
@@ -177,9 +90,9 @@
                                         jhu.data.features[i].attributes.Recovered,
                                         jhu.data.features[i].attributes.Deaths,
                                         jhu.data.features[i].attributes.Last_Update,
-                                        jhu.src.name,
-                                        jhu.src.url,
-                                        jhu.src.dataNotice
+                                        dataSources.jhu.name,
+                                        dataSources.jhu.url,
+                                        dataSources.jhu.dataNotice
                                     )
                                     break
                                 }
@@ -187,8 +100,27 @@
                         }
                     }
 
+                    // Hole Daten vom RKI
+                    let rkiConfirmed = await this.get(dataSources.rki.dataUrls.confirmed, {json: true})
+                    let rkiDead = await this.get(dataSources.rki.dataUrls.dead, {json: true})
+                    console.dir(rkiConfirmed)
+                    console.dir(rkiDead)
+                    if (rkiConfirmed.status === 'success' &&
+                        rkiDead.status === 'success'
+                    ) {
+                        this.addResult(
+                            rkiConfirmed.data.features[0].attributes.value,
+                            false,
+                            rkiDead.data.features[0].attributes.value,
+                            false,
+                            dataSources.rki.name,
+                            dataSources.rki.url,
+                            dataSources.rki.dataNotice
+                        )
+                    }
+
                     // Hole Daten von Zeit Online
-                    let zeit = await this.getZeit()
+                    let zeit = await this.get(dataSources.zeit.dataUrl, {json: true})
                     console.dir(zeit)
                     if (zeit.status === 'success') {
                         this.addResult(
@@ -196,14 +128,14 @@
                             zeit.data.currentStats.recovered,
                             zeit.data.currentStats.dead,
                             new Date(zeit.data.lastUpdate).getTime(),
-                            zeit.src.name,
-                            zeit.src.url,
-                            zeit.src.dataNotice
+                            dataSources.zeit.name,
+                            dataSources.zeit.url,
+                            dataSources.zeit.dataNotice
                         )
                     }
 
                     // Hole Daten von Berliner Morgenpost
-                    let mopo = await this.getMopo()
+                    let mopo = await this.get(dataSources.mopo.dataUrl)
                     console.dir(mopo)
                     if (mopo.status === 'success') {
                         let csv = mopo.data
@@ -216,15 +148,15 @@
                                 values[3],
                                 values[4],
                                 new Date(values[1]).getTime(),
-                                mopo.src.name,
-                                mopo.src.url,
-                                mopo.src.dataNotice
+                                dataSources.mopo.name,
+                                dataSources.mopo.url,
+                                dataSources.mopo.dataNotice
                             )
                         }
                     }
 
                     // Hole Daten von BNO News
-                    let bno = await this.getBNO()
+                    let bno = await this.get(dataSources.bno.dataUrl)
                     console.dir(bno)
                     if (bno.status === 'success') {
                         let html = bno.data
@@ -236,10 +168,10 @@
                                 matches[1].replace(',', ''),
                                 matches[7].replace(',', ''),
                                 matches[3].replace(',', ''),
-                                Date.now(),
-                                bno.src.name,
-                                bno.src.url,
-                                bno.src.dataNotice
+                                false,
+                                dataSources.bno.name,
+                                dataSources.bno.url,
+                                dataSources.bno.dataNotice
                             )
                         }
                     }
@@ -254,105 +186,42 @@
                         this.addResultHTML(this.results[i])
                     }
 
+                    document.querySelector('#loading').style.display = 'none'
                     console.dir(this.results)
                 },
-                getZeit: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.zeit
-                        Request.get(source.dataUrl,
-                            {
-                                json: true
-                            },
-                            (data) => {
+                get: function(url, opts) {
+                    return new Promise(async (resolve) => {
+                        try {
+                            let response = await fetch(url, {
+                                credentials: 'omit',
+                                mode: 'cors'
+                            })
+                            if (response.ok && response.status === 200) {
+                                let data = (opts && opts.json) ? await response.json() : await response.text()
                                 resolve({
                                     status: 'success',
-                                    data: data,
-                                    src: source
+                                    data: data
                                 })
-                            },
-                            (error) => {
-                                window.console.warn(error)
+                            } else {
                                 resolve({
                                     status: 'error',
-                                    error: error
+                                    errorCode: response.status
                                 })
                             }
-                        )
-                    })
-                },
-                getMopo: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.mopo
-                        Request.get(source.dataUrl,
-                            {},
-                            (data) => {
-                                resolve({
-                                    status: 'success',
-                                    data: data,
-                                    src: source
-                                })
-                            },
-                            (error) => {
-                                window.console.warn(error)
-                                resolve({
-                                    status: 'error',
-                                    error: error
-                                })
-                            }
-                        )
-                    })
-                },
-                getBNO: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.bno
-                        Request.get(source.dataUrl,
-                            {},
-                            (data) => {
-                                resolve({
-                                    status: 'success',
-                                    data: data,
-                                    src: source
-                                })
-                            },
-                            (error) => {
-                                window.console.warn(error)
-                                resolve({
-                                    status: 'error',
-                                    error: error
-                                })
-                            }
-                        )
-                    })
-                },
-                getJHU: function() {
-                    return new Promise((resolve) => {
-                        let source = dataSources.jhu
-                        Request.get(source.dataUrl,
-                            {
-                                json: true
-                            },
-                            (data) => {
-                                resolve({
-                                    status: 'success',
-                                    data: data,
-                                    src: source
-                                })
-                            },
-                            (error) => {
-                                window.console.warn(error)
-                                resolve({
-                                    status: 'error',
-                                    error: error
-                                })
-                            }
-                        )
+                        } catch (error) {
+                            resolve({
+                                status: 'error',
+                                errorCode: -1
+                            })
+                        }
+
                     })
                 },
                 addResult: function(infected, recovered, dead, updated, name, url, note) {
                     this.results.push({
                         infected: parseInt(infected),
-                        recovered: parseInt(recovered),
-                        dead: parseInt(dead),
+                        recovered: !recovered ? 'keine Angabe' : parseInt(recovered),
+                        dead: !dead ? 'keine Angabe' : parseInt(dead),
                         lastUpdated: updated,
                         srcName: name,
                         srcUrl: url,
@@ -373,7 +242,7 @@
                         if (data.lastUpdated) {
                             let dt = new Date()
                             dt.setTime(data.lastUpdated)
-                            lastUpdated = dt.toUTCString()
+                            lastUpdated = dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString()
                         }
 
 
@@ -388,6 +257,7 @@
                         td5.innerHTML = `<a href="${data.srcUrl}" target="_blank">${data.srcName}</a>`
                         tr.appendChild(td5)
                         td6.innerHTML = data.srcNote
+                        td6.className = 'hide-mobile'
                         tr.appendChild(td6)
 
                         this.table.appendChild(tr)
@@ -406,7 +276,7 @@
         window.dataLayer = window.dataLayer || []
         function gtag(){dataLayer.push(arguments)}
         gtag('js', new Date())
-        gtag('config', 'UA-57728344-3')
+        gtag('config', 'UA-57728344-1')
     </script>
 </body>
 </html>
