@@ -74,14 +74,6 @@
                 }
             }
 
-            const bundelaender = {
-                nrw: {
-                    name: 'Ministerium für Arbeit, Gesundheit und Soziales des Landes Nordrhein-Westfalen',
-                    url: 'https://www.mags.nrw/coronavirus-fallzahlen-nrw',
-                    dataUrl: 'https://www.mags.nrw/coronavirus-fallzahlen-nrw'
-                }
-            }
-
             const Covid19StatsDE = {
                 results: [],
                 table: document.querySelector('#table'),
@@ -180,28 +172,6 @@
                                 dataSources.bno.name,
                                 dataSources.bno.url,
                                 dataSources.bno.dataNotice
-                            )
-                        }
-                    }
-
-                    // Hole Daten der Bundesländer, direkt von den Webseiten
-                    // der Landes-Gesundheitsministerien
-                    let nrw = await this.get(bundelaender.nrw.dataUrl)
-                    console.dir(nrw)
-                    if (nrw.status === 'success') {
-                        let html = nrw.data
-                        let regexTotal = /Gesamt<\/strong><\/td>\n<td><strong>(.*?)<\/strong><\/td>\n<td><strong>(.*?)<\/strong>/gm
-
-                        let matches = regexTotal.exec(html)
-                        if (matches.length && matches.length > 1) {
-                            this.addResult(
-                                matches[1].replace('.', ''),
-                                false,
-                                matches[2].replace('.', ''),
-                                false,
-                                bundelaender.nrw.name,
-                                bundelaender.nrw.url,
-                                ''
                             )
                         }
                     }
