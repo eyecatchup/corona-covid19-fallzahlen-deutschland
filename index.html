@@ -32,106 +32,8 @@
         </thead>
         <tbody id='table'></tbody>
     </table>
+    <p id='loading'><strong>Lade Daten...</strong></p>
     <script>
-        ((window) => {
-            "use strict"
-
-            /**
-             * XHR wrapper
-             */
-            const Request = {
-                xhr: null,
-                getXMLHttpRequest: function() {
-                    if (!!window.XMLHttpRequest) {
-                        this.xhr = new window.XMLHttpRequest
-                    } else {
-                        try {
-                            this.xhr = new ActiveXObject('MSXML2.XMLHTTP.3.0')
-                        } catch (e) {
-                            this.xhr = null
-                        }
-                    }
-                },
-                get: function(requestUrl, opts, success, failure) {
-                    this.getXMLHttpRequest()
-
-                    if (!this.xhr) {
-                        window.console.log('AJAX (XMLHTTP) not supported by your client.')
-                        failure({
-                            status: 'error',
-                            msg: 'AJAX (XMLHTTP) not supported by your client but required to work, sorry.'
-                        })
-                        return
-                    }
-
-                    const self = this.xhr
-
-                    this.xhr.open('GET', requestUrl, true)
-
-                    if (opts && opts.header && opts.header.length) {
-                        for (let i = 0; i < opts.header.length; i++) {
-                            //this.xhr.setRequestHeader('Accept', 'application/json')
-                            this.xhr.setRequestHeader(
-                                opts.header[i].name,
-                                opts.header[i].value
-                            )
-                        }
-                    }
-
-                    if (opts && opts.json) {
-                        this.xhr.setRequestHeader('Accept', 'application/json')
-                    }
-
-                    this.xhr.timeout = 2500 // time in milliseconds
-
-                    self.onload = () => {
-                        if (self.status >= 200 && self.status < 300) {
-                            window.console.log(`Successfully called ${requestUrl}.`)
-
-                            let json = null
-                            if (opts && opts.json) {
-                                try {
-                                    json = JSON.parse(self.responseText)
-                                } catch (e) {
-                                    window.console.log('Error parsing response as JSON. Returning raw response data.')
-                                }
-                            }
-
-                            success((!json ? self.responseText : json))
-                        }
-                        else {
-                            let msg = `Error requesting ${requestUrl}. Response Status-Code is ${self.status}.`
-                            window.console.log(msg)
-                            failure({
-                                status: 'error',
-                                msg: msg
-                            });
-                        }
-                    }
-                    self.onerror = () => {
-                        let msg = `There was an error (of some sort) connecting to ${requestUrl}.`
-                        window.console.log(msg)
-                        failure({
-                            status: 'error',
-                            msg: msg
-                        })
-                    }
-                    self.ontimeout = () => {
-                        let msg = `Connection to ${requestUrl} timed out.`
-                        window.console.log(msg)
-                        failure({
-                            status: 'error',
-                            msg: msg
-                        })
-                    }
-
-                    this.xhr.send()
-                }
-            }
-
-            window.Request = Request
-        })(window);
-
         ((window) => {
             "use strict"
 
@@ -149,10 +51,10 @@
                     dataNotice: 'Datenquellen: Robert-Koch-Institut sowie Kreis- und Landesgesundheitsämter<br><br>Hinweis: Die Datenlage ist weltweit hochdynamisch. So kann es bei den Fallzahlen zu Abweichungen anderer Darstellungen kommen. Die offiziellen Zahlen fallen insbesondere zwischen dem Robert-Koch-Institut und den Meldungen der Bundesländer unterschiedlich aus. Das liegt an zeitlich abweichenden Ständen und den Meldeketten. Diese Angaben werden von der Redaktion mehrmals täglich abgeglichen. Zudem kommt es bei der Zahl der "wieder gesunden" Menschen zu Verzögerungen.'
                 },
                 bno: {
-                    name: 'BNO News',
+                    name: 'BNO News (via dts Nachrichtenagentur)',
                     url: 'https://bnonews.com/index.php/2020/03/the-latest-coronavirus-cases/',
                     dataUrl: 'https://docs.google.com/spreadsheets/u/0/d/e/2PACX-1vR30F8lYP3jG7YOq8es0PBpJIE5yvRVZffOyaqC0GgMBN6yt0Q-NI8pxS7hd1F9dYXnowSC6zpZmW9D/pubhtml/sheet?headers=false&gid=0&range=A1:I202',
-                    dataNotice: 'Datenquelle für Deutschland: https://dts-nachrichtenagentur.de/corona-fallzahlen'
+                    dataNotice: 'Datenquelle für Deutschland: https://dts-nachrichtenagentur.de/corona-fallzahlen<br><br>Hinweis:Direkte Abfrage beim Robert-Koch-Institut (RKI), aber auch bei Landesministerien, Städten und Landkreisen, bis 27.3. nur durch die dts-Redaktion. Seit 27.3. nutzen wir für die Angabe der bestätigten Infektionen sowie der Totenzahlen zusätzlich auch verlässliche Datenangaben Dritter wie den Redaktionen der Berliner Morgenpost, Zeit.de, Tagesspiegel.de, Saarbrücker Zeitung, Radio Bremen, Risklayer, CEDIM (KIT), coronavirus.jetzt, u.v.a., neben eigenen Berechnungen.'
                 },
                 jhu: {
                     name: 'Johns Hopkins University',
@@ -169,6 +71,14 @@
                         dead: 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_Landkreisdaten/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22deaths%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true'
                     },
                     dataNotice: 'Es werden die bundesweit einheitlich erfassten und an das Robert Koch-Institut (RKI) übermittelten Daten zu bestätigten COVID-19-Fällen dargestellt. COVID-19-Verdachtsfälle und - Erkrankungen sowie Nachweise von SARS-CoV-2 werden gemäß Infektionsschutzgesetz an das zuständige Gesundheitsamt gemeldet. Die Gesundheitsämter ermitteln ggf. zusätzliche Informationen, bewerten den Fall und leiten die notwendigen Infektionsschutzmaßnahmen ein.<br><br>Die Daten werden gemäß Infektionsschutzgesetz spätestens am nächsten Arbeitstag vom Gesundheitsamt elektronisch an die zuständige Landesbehörde und von dort an das RKI übermittelt. In der aktuellen Lage übermitteln die meisten Ämter sogar täglich. Am RKI werden sie mittels weitgehend automatisierter Algorithmen validiert.<br><br>Es werden nur Fälle veröffentlicht, bei denen eine labordiagnostische Bestätigung (unabhängig vom klinischen Bild) vorliegt. Die Daten werden am RKI einmal täglich jeweils um 0:00 Uhr aktualisiert. Durch die Dateneingabe und Datenübermittlung entsteht von dem Zeitpunkt des Bekanntwerdens des Falls bis zur Veröffentlichung durch das RKI ein Zeitverzug, sodass es Abweichungen hinsichtlich der Fallzahlen zu anderen Quellen geben kann.'
+                }
+            }
+
+            const bundelaender = {
+                nrw: {
+                    name: 'Ministerium für Arbeit, Gesundheit und Soziales des Landes Nordrhein-Westfalen',
+                    url: 'https://www.mags.nrw/coronavirus-fallzahlen-nrw',
+                    dataUrl: 'https://www.mags.nrw/coronavirus-fallzahlen-nrw'
                 }
             }
 
@@ -274,6 +184,28 @@
                         }
                     }
 
+                    // Hole Daten der Bundesländer, direkt von den Webseiten
+                    // der Landes-Gesundheitsministerien
+                    let nrw = await this.get(bundelaender.nrw.dataUrl)
+                    console.dir(nrw)
+                    if (nrw.status === 'success') {
+                        let html = nrw.data
+                        let regexTotal = /Gesamt<\/strong><\/td>\n<td><strong>(.*?)<\/strong><\/td>\n<td><strong>(.*?)<\/strong>/gm
+
+                        let matches = regexTotal.exec(html)
+                        if (matches.length && matches.length > 1) {
+                            this.addResult(
+                                matches[1].replace('.', ''),
+                                false,
+                                matches[2].replace('.', ''),
+                                false,
+                                bundelaender.nrw.name,
+                                bundelaender.nrw.url,
+                                ''
+                            )
+                        }
+                    }
+
                     this.results.sort(function(a, b) {
                         if (a.infected > b.infected) return -1
                         if (a.infected < b.infected) return 1
@@ -284,33 +216,42 @@
                         this.addResultHTML(this.results[i])
                     }
 
+                    document.querySelector('#loading').style.display = 'none'
                     console.dir(this.results)
                 },
                 get: function(url, opts) {
-                    return new Promise((resolve) => {
-                        Request.get(url,
-                            opts || {},
-                            (data) => {
+                    return new Promise(async (resolve) => {
+                        try {
+                            let response = await fetch(url, {
+                                credentials: 'omit',
+                                mode: 'cors'
+                            })
+                            if (response.ok && response.status === 200) {
+                                let data = (opts && opts.json) ? await response.json() : await response.text()
                                 resolve({
                                     status: 'success',
                                     data: data
                                 })
-                            },
-                            (error) => {
-                                window.console.warn(error)
+                            } else {
                                 resolve({
                                     status: 'error',
-                                    error: error
+                                    errorCode: response.status
                                 })
                             }
-                        )
+                        } catch (error) {
+                            resolve({
+                                status: 'error',
+                                errorCode: -1
+                            })
+                        }
+
                     })
                 },
                 addResult: function(infected, recovered, dead, updated, name, url, note) {
                     this.results.push({
                         infected: parseInt(infected),
                         recovered: !recovered ? 'keine Angabe' : parseInt(recovered),
-                        dead: parseInt(dead),
+                        dead: !dead ? 'keine Angabe' : parseInt(dead),
                         lastUpdated: updated,
                         srcName: name,
                         srcUrl: url,
