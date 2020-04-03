@@ -47,7 +47,8 @@
                 mopo: {
                     name: 'Berliner Morgenpost',
                     url: 'https://interaktiv.morgenpost.de/corona-virus-karte-infektionen-deutschland-weltweit/',
-                    dataUrl: 'https://interaktiv.morgenpost.de/corona-virus-karte-infektionen-deutschland-weltweit/data/Coronavirus.timeline.v2.csv?' + Date.now(),
+                    //dataUrl: 'https://interaktiv.morgenpost.de/corona-virus-karte-infektionen-deutschland-weltweit/data/Coronavirus.timeline.v2.csv?' + Date.now(),
+                    dataUrl: 'https://funkeinteraktiv.b-cdn.net/current.v4.csv?t=' + Date.now(),
                     dataNotice: 'Datenquellen: Robert-Koch-Institut sowie Kreis- und Landesgesundheitsämter<br><br>Hinweis: Die Datenlage ist weltweit hochdynamisch. So kann es bei den Fallzahlen zu Abweichungen anderer Darstellungen kommen. Die offiziellen Zahlen fallen insbesondere zwischen dem Robert-Koch-Institut und den Meldungen der Bundesländer unterschiedlich aus. Das liegt an zeitlich abweichenden Ständen und den Meldeketten. Diese Angaben werden von der Redaktion mehrmals täglich abgeglichen. Zudem kommt es bei der Zahl der "wieder gesunden" Menschen zu Verzögerungen.'
                 },
                 bno: {
@@ -140,18 +141,19 @@
                     if (mopo.status === 'success') {
                         let csv = mopo.data
                         let lines = csv.split('\n')
-                        let lastLine = lines[lines.length - 2] // letzte zeile ist leer
-                        let values = lastLine.split(',')
-                        if (values && values.length && values.length === 5 && values[0] === 'germany') {
-                            this.addResult(
-                                values[2],
-                                values[3],
-                                values[4],
-                                new Date(values[1]).getTime(),
-                                dataSources.mopo.name,
-                                dataSources.mopo.url,
-                                dataSources.mopo.dataNotice
-                            )
+                        for (let i = 0; i < lines.length; i++) {
+                            let values = lines[i].split(',')
+                            if (values && values.length && values[0] === 'de') {
+                                this.addResult(
+                                    values[12],
+                                    values[13],
+                                    values[14],
+                                    new Date(values[10]).getTime(),
+                                    dataSources.mopo.name,
+                                    dataSources.mopo.url,
+                                    dataSources.mopo.dataNotice
+                                )
+                            }
                         }
                     }
 
@@ -160,10 +162,10 @@
                     console.dir(bno)
                     if (bno.status === 'success') {
                         let html = bno.data
-                        let regex = /Germany<\/td><td class="s16" dir="ltr">(.*?)<\/td><td class="s17" dir="ltr">(.*?)<\/td><td class="s16" dir="ltr">(.*?)<\/td><td class="s18" dir="ltr">(.*?)<\/td><td class="s19" dir="ltr">(.*?)<\/td><td class="s19" dir="ltr">(.*?)<\/td><td class="s19" dir="ltr">(.*?)<\/td>/gm
+                        let regex = /Germany<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td><td class="s\d{2}" dir="ltr">(.*?)<\/td>/gm
 
                         let matches = regex.exec(html)
-                        if (matches.length && matches.length > 1) {
+                        if (matches && matches.length && matches.length > 1) {
                             this.addResult(
                                 matches[1].replace(',', ''),
                                 matches[7].replace(',', ''),
